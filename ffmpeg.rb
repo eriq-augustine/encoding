@@ -1,0 +1,138 @@
+require_relative './util'
+
+require 'shellwords'
+
+module FFMPEG
+   FFPROBE_PATH = File.join('/', 'usr', 'bin', 'ffprobe')
+   FFMPEG_PATH = File.join('/', 'usr', 'bin', 'ffmpeg')
+
+   # Common video extensions.
+   VIDEO_EXTENSIONS = [
+      '3g2', '3gp',
+      'amv', 'asf', 'avi',
+      'drc',
+      'f4a', 'f4b', 'f4p', 'f4v', 'flv',
+      'gif', 'gifv',
+      'm2v', 'm4p', 'm4v', 'mkv', 'mng', 'mov', 'mp2', 'mp4', 'mpe', 'mpeg', 'mpg', 'mpv', 'mxf',
+      'nsv',
+      'ogg', 'ogv',
+      'qt',
+      'rm', 'rmvb', 'roq',
+      'svi',
+      'vob',
+      'webm', 'wmv',
+      'yuv'
+   ]
+
+   # Common subtitle extensions.
+   SUBTITLE_EXTENSIONS = ['aqt', 'ass', 'jss', 'pjs', 'rt', 'sbv', 'smi', 'srt', 'ssa', 'stl', 'sub', 'vtt']
+
+   # Directory names that subtitles are often held in.
+   SUBTITLE_DIRS = ['sub', 'subs', 'subtitle', 'subtitles']
+
+   def FFMPEG.formatArgs(args)
+      return Shellwords.join(args)
+   end
+
+   def FFMPEG.transcode(inPath, outPath, additionalArgs)
+      args = [
+         '-i', inPath,  # input file
+         '-y',  # Overwite output files
+         '-nostats',  # Make quieter
+         '-loglevel', 'warning'  # Make quieter
+      ]
+
+      args += additionalArgs
+      args << outPath
+
+      command = "#{FFMPEG_PATH} #{FFMPEG.formatArgs(args)}"
+
+      Util.run(command)
+   end
+
+   def FFMPEG.probe(path)
+      args = [
+         '-hide_banner',
+         '-show_streams',
+         '-show_format',
+         path
+      ]
+
+      command = "#{FFPROBE_PATH} #{FFMPEG.formatArgs(args)}"
+      stdout, _ = Util.run(command)
+      return stdout
+   end
+
+   def FFMPEG.getStreams(path)
+      # :state_open, :state_metadata, :state_stream
+
+      streams = {
+         :metadata => {},
+         :video => [],
+         :audio => [],
+         :subtitle => [],
+         :other => []
+      }
+
+      rawInfo = FFMPEG.probe(path)
+
+      state = :state_open
+      currentStream = nil
+
+      rawInfo.each_line{|line|
+         line.strip!()
+
+         begin
+            case state
+            when :state_open
+               if (line == '[FORMAT]')
+                  state = :state_metadata
+               elsif (line == '[STREAM]')
+                  state = :state_stream
+                  currentStream = {}
+               end
+            when :state_metadata
+               if (line == '[/FORMAT]')
+                  state = :state_open
+               else
+                  data = line.downcase().sub(/^tag:/, '').split('=', 2)
+                  streams[:metadata][data[0].strip()] = data[1].strip()
+               end
+            when :state_stream
+               if (line == '[/STREAM]')
+                  case currentStream['codec_type']
+                  when 'video'
+                     streams[:video] << currentStream
+                  when 'audio'
+                     streams[:audio] << currentStream
+                  when 'subtitle'
+                     # Ensure that 'lang' is populated if 'language' exists.
+                     if (currentStream.has_key?('language') && !currentStream.has_key?('lang'))
+                        currentStream['lang'] = currentStream['language']
+                     end
+
+                     streams[:subtitle] << currentStream
+                  when 'attachment'
+                     streams[:other] << currentStream
+                  else
+                     puts "Unknown codec_type: #{currentStream['codec_type']}."
+                     streams[:other] << currentStream
+                  end
+
+                  currentStream = nil
+                  state = :state_open
+               else
+                  data = line.downcase().sub(/^tag:/, '').split('=', 2)
+                  currentStream[data[0]] = data[1]
+               end
+            else
+               puts "Unknown case: #{state}."
+               exit 1
+            end
+         rescue Exception => ex
+         end
+      }
+
+      return streams
+   end
+end
