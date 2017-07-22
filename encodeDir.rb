@@ -23,13 +23,12 @@ def parseDir(path, relativePath)
    contents = []
    dirsToExplore = []
 
-   Dir.foreach(path){|dirent|
+   Dir.foreach(path).to_a().sort().each{|dirent|
       if (dirent == '.' || dirent == '..')
          next
       end
 
       direntPath = File.join(path, dirent)
-
       if (File.directory?(direntPath))
          dirsToExplore << direntPath
       else
@@ -57,29 +56,33 @@ def parseDir(path, relativePath)
 end
 
 # Figure out the work that needs to be done.
-# Returns: [[directories to make], [files to copy], [files to encode]]
+# Returns: [[directories to make], [files to copy], [subtitles to encoce (to webvtt)], [files to encode]]
 def splitWork(dirInfo)
    dirs = [dirInfo[:relPath]]
    toCopy = []
+   subsToEncode = []
    toEncode = []
 
    dirInfo[:contents].each{|dirent|
       if (dirent[:type] == DIRENT_TYPE_DIR)
-         tempDirs, tempToCopy, tempToEncode = splitWork(dirent)
+         tempDirs, tempToCopy, tempSubsToEncode, tempToEncode = splitWork(dirent)
 
          dirs += tempDirs
          toCopy += tempToCopy
+         subsToEncode += tempSubsToEncode
          toEncode += tempToEncode
       else
          if (dirent[:ext] != 'webm' && FFMPEG::VIDEO_EXTENSIONS.include?(dirent[:ext]))
             toEncode << dirent
+         elsif (dirent[:ext] != 'vtt' && FFMPEG::SUBTITLE_EXTENSIONS.include?(dirent[:ext]))
+            subsToEncode << dirent
          else
             toCopy << dirent
          end
       end
    }
 
-   return dirs, toCopy, toEncode
+   return dirs, toCopy, subsToEncode, toEncode
 end
 
 def makeDirs(outputDir, dirs)
@@ -117,9 +120,11 @@ def getStreams(files)
          violations['multiple audio streams'] << file
       end
 
-      if (file[:streams][:subtitle].size() > 0)
-         violations['has subtitles'] << file
-      end
+      file[:streams][:subtitle].each{|subStream|
+         if (!FFMPEG::KNOWN_SUBTITLE_CODECS.include?(subStream['codec_name']))
+            violations['unknown sub type'] << file
+         end
+      }
    }
 
    if (violations.size() > 0)
@@ -128,14 +133,56 @@ def getStreams(files)
    end
 end
 
+def encodeSubs(outputDir, files)
+   tasks = []
+   labels = []
+
+   # Check for conflicts and rename any conflicts.
+   nameCount = Hash.new{|hash, key| hash[key] = 0}
+
+   files.each{|file|
+      outPath = File.join(outputDir, file[:relPath].sub(/#{File.extname(file[:relPath])}$/, '.vtt'))
+      nameCount[outPath] += 1
+
+      originalPath = outPath
+      while (nameCount[outPath] > 1)
+         outPath = File.join(outputDir, file[:relPath].sub(/#{File.extname(file[:relPath])}$/, ".#{nameCount[originalPath]}.vtt"))
+      end
+
+      tasks << Proc.new{ VP9.transcodeSubtitleFile(file[:path], outPath) }
+      labels << file[:path]
+   }
+
+   Util.parallel(tasks, labels, true)
+end
+
+# Get the subtitle streams from the file.
+# Return an array of the stream ids.
+def extractSubStreams(file)
+   subStreams = []
+
+   file[:streams][:subtitle].each{|subStream|
+      if (FFMPEG::UNCONVERTABLE_SUBTITLE_CODECS.include?(subStream['codec_name']))
+         next
+      elsif (FFMPEG::CONVERTABLE_SUBTITLE_CODECS.include?(subStream['codec_name']))
+         subStreams << subStream['index'].to_i()
+      else
+         raise("Unknown subtitle codec: #{subStream['codec_name']}")
+      end
+   }
+
+   return subStreams
+end
+
 def encodeFiles(outputDir, files)
    tasks = []
    labels = []
 
    files.each{|file|
       outPath = File.join(outputDir, file[:relPath].sub(/#{File.extname(file[:relPath])}$/, '.webm'))
+      subs = extractSubStreams(file)
 
-      tasks << Proc.new{ VP9.transcode(file[:path], outPath) }
+      tasks << Proc.new{ VP9.transcodeWithSubs(file[:path], outPath, subs) }
       labels << file[:path]
    }
 
@@ -145,28 +192,40 @@ end
 def main(targetDir, outputDir)
    dirInfo = parseDir(targetDir, '.')
 
-   dirs, toCopy, toEncode = splitWork(dirInfo)
+   dirs, toCopy, subsToEncode, toEncode = splitWork(dirInfo)
 
    # Before doing any file operations, make sure any encode files look clean.
    getStreams(toEncode)
 
+   # Dry run.
+   if (outputDir == nil)
+      return
+   end
+
    makeDirs(outputDir, dirs)
    copy(outputDir, toCopy)
    encodeFiles(outputDir, toEncode)
+   encodeSubs(outputDir, subsToEncode)
 end
 
 def parseArgs(args)
-   if (args.size != 2 || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
+   if (![1, 2].include?(args.size()) || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
       puts "USAGE: ruby #{$0} <target dir> <output dir>"
+      puts "       ruby #{$0} <target dir>"
       puts "Make a copy of <target dir> inside of <output dir> with all video files transcoded as webm."
       puts "All non-video files will be directly copied over."
       puts "If there is any reason the directory cannot be easily encoded, we will panic before any"
       puts "encoding or copying is done."
+      puts "If no output directory is supplied, then a dry run will be performed where no files are copied or encoded."
       exit(1)
    end
 
    targetDir = args.shift()
-   outputDir = args.shift()
+
+   outputDir = nil
+   if (args.size() > 0)
+      outputDir = args.shift()
+   end
 
    return targetDir, outputDir
 end

@@ -30,6 +30,24 @@ module FFMPEG
    # Directory names that subtitles are often held in.
    SUBTITLE_DIRS = ['sub', 'subs', 'subtitle', 'subtitles']
 
+   # Subs we can convert to webvtt.
+   # We must whitelist any subs we will use.
+   CONVERTABLE_SUBTITLE_CODECS = ['ass', 'srt', 'ssa', 'subrip']
+
+   # Subs we cannot convert to webvtt.
+   UNCONVERTABLE_SUBTITLE_CODECS = ['dvd_subtitle']
+
+   KNOWN_SUBTITLE_CODECS = CONVERTABLE_SUBTITLE_CODECS + UNCONVERTABLE_SUBTITLE_CODECS
+
+   SUBTITLE_CODECS = [
+      'ass', 'dvb_subtitle', 'dvb_teletext', 'dvd_subtitle', 'eia_608',
+      'hdmv_pgs_subtitle', 'hdmv_text_subtitle', 'jacosub',
+      'microdvd', 'mov_text', 'mpl2', 'pjs', 'realtext',
+      'sami', 'srt', 'ssa', 'stl', 'subrip', 'subviewer',
+      'subviewer1', 'text', 'vplayer', 'webvtt', 'xsub'
+   ]
+
+
    def FFMPEG.formatArgs(args)
       return Shellwords.join(args)
    end
@@ -61,6 +79,26 @@ module FFMPEG
       command = "#{FFPROBE_PATH} #{FFMPEG.formatArgs(args)}"
       stdout, _ = Util.run(command)
       return stdout
+   end
+
+   # Pull all the subtitle streams (idexed by |subStreams|) out of the container and write
+   # them to individual files.
+   # If there are multiple sub streams, all streams past the first one will get suffixed with a number
+   # (starting at 1).
+   def FFMPEG.extractSubs(path, outDir, subStreams, codec, extension)
+      subStreams.each_index{|i|
+         args = [
+            '-map', "0:#{subStreams[i]}",
+            '-c:s', "#{codec}"
+         ]
+
+         outPath = File.join(outDir, File.basename(path).sub(/#{File.extname(path)}$/, ".#{extension}"))
+         if (i != 0)
+            outPath = File.join(outDir, File.basename(path).sub(/#{File.extname(path)}$/, ".#{i}.#{extension}"))
+         end
+
+         FFMPEG.transcode(path, outPath, args)
+      }
    end
 
    def FFMPEG.getStreams(path)

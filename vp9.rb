@@ -13,8 +13,27 @@ module VP9
       '-f', 'webm'
    ]
 
-   def VP9.transcode(inPath, outPath)
-      FFMPEG.transcode(inPath, outPath, DEFAULT_ARGS)
+   DEFAULT_SUB_ARGS = [
+      '-c:s', 'webvtt'
+   ]
+
+   def VP9.transcode(inPath, outPath, additionalArgs = [])
+      FFMPEG.transcode(inPath, outPath, DEFAULT_ARGS + additionalArgs)
+   end
+
+   # Extract the subs as well as standard encoding.
+   def VP9.transcodeWithSubs(inPath, outPath, subStreamIds)
+      args = []
+      subStreamIds.each{|id|
+         args += ['-map', "0:#{id}", '-c:s', 'webvtt']
+      }
+
+      VP9.transcode(inPath, outPath, args)
+      FFMPEG.extractSubs(inPath, File.dirname(outPath), subStreamIds, 'webvtt', 'vtt')
+   end
+
+   def VP9.transcodeSubtitleFile(inPath, outPath)
+      FFMPEG.transcode(inPath, outPath, DEFAULT_SUB_ARGS)
    end
 
    def VP9.parseArgs(args)

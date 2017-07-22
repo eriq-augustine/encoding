@@ -59,6 +59,8 @@ module Util
             rescue Exception => ex
                if (verbose)
                   puts "Error: #{labels[i]}"
+                  puts ex
+                  puts ex.backtrace()
                end
 
                errors[labels[i]] = ex
@@ -70,5 +72,10 @@ module Util
       pool.shutdown()
 
       return errors
+   end
+
+   # https://stackoverflow.com/questions/88311/how-to-generate-a-random-string-in-ruby
+   def Util.randString(len)
+      return (0...len).map{('a'..'z').to_a[rand(26)]}.join
    end
 end
