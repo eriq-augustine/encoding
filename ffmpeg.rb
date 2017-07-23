@@ -32,7 +32,7 @@ module FFMPEG
 
    # Subs we can convert to webvtt.
    # We must whitelist any subs we will use.
-   CONVERTABLE_SUBTITLE_CODECS = ['ass', 'srt', 'ssa', 'subrip']
+   CONVERTABLE_SUBTITLE_CODECS = ['ass', 'mov_text', 'srt', 'ssa', 'subrip']
 
    # Subs we cannot convert to webvtt.
    UNCONVERTABLE_SUBTITLE_CODECS = ['dvd_subtitle']
@@ -47,6 +47,9 @@ module FFMPEG
       'subviewer1', 'text', 'vplayer', 'webvtt', 'xsub'
    ]
 
+   # Sometime images are included as a stream.
+   # They look like video streams, but we want to put them in 'other' streams instead.
+   IMAGE_STREAM_CODECS = ['mjpeg', 'pgm', 'png', 'ppm', 'tiff']
 
    def FFMPEG.formatArgs(args)
       return Shellwords.join(args)
@@ -140,7 +143,13 @@ module FFMPEG
                if (line == '[/STREAM]')
                   case currentStream['codec_type']
                   when 'video'
-                     streams[:video] << currentStream
+                     # Some attached images look like video streams.
+                     if ((currentStream.has_key?('codec_name') && IMAGE_STREAM_CODECS.include?(currentStream['codec_name'])) ||
+                           (currentStream.has_key?('mimetype') && currentStream['mimetype'].downcase().start_with?('image')))
+                        streams[:other] << currentStream
+                     else
+                        streams[:video] << currentStream
+                     end
                   when 'audio'
                      streams[:audio] << currentStream
                   when 'subtitle'
