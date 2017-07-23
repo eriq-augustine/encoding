@@ -18,6 +18,11 @@ def stripFile(lang, path)
    targetId = nil
    streams[:audio].each{|audioStream|
       if (audioStream['language'] == lang)
+         # Skip commentary
+         if (audioStream.has_key?('title') && audioStream['title'].downcase().include?('commentary'))
+            next
+         end
+
          if (targetId != nil)
             puts "ERROR: Multiple matching audio streams found. #{path}"
             return

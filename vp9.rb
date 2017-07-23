@@ -3,7 +3,7 @@ require_relative './ffmpeg'
 module VP9
    DEFAULT_ARGS = [
       '-c:v', 'libvpx-vp9',
-      '-crf', '31', '-b:v', '0',
+      '-crf', '32', '-b:v', '0',
       '-c:a', 'libvorbis', '-b:a', '64k',
       '-cpu-used', '1',
       '-deadline', '-good',

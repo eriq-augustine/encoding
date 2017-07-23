@@ -93,7 +93,13 @@ end
 
 def copy(outputDir, files)
    files.each{|file|
-      FileUtils.cp(file[:path], File.join(outputDir, file[:relPath]))
+      outPath = File.join(outputDir, file[:relPath])
+
+      if (File.exists?(outPath))
+         puts "SKIPPING: Copy target already exists: #{outPath}"
+      else
+         FileUtils.cp(file[:path], outPath)
+      end
    }
 end
 
@@ -149,8 +155,12 @@ def encodeSubs(outputDir, files)
          outPath = File.join(outputDir, file[:relPath].sub(/#{File.extname(file[:relPath])}$/, ".#{nameCount[originalPath]}.vtt"))
       end
 
-      tasks << Proc.new{ VP9.transcodeSubtitleFile(file[:path], outPath) }
-      labels << file[:path]
+      if (File.exists?(outPath))
+         puts "SKIPPING: Sub encode target already exists: #{outPath}"
+      else
+         tasks << Proc.new{ VP9.transcodeSubtitleFile(file[:path], outPath) }
+         labels << file[:path]
+      end
    }
 
    Util.parallel(tasks, labels, true)
@@ -180,6 +190,12 @@ def encodeFiles(outputDir, files)
 
    files.each{|file|
       outPath = File.join(outputDir, file[:relPath].sub(/#{File.extname(file[:relPath])}$/, '.webm'))
+
+      if (File.exists?(outPath))
+         puts "SKIPPING: Video encode target already exists: #{outPath}"
+         next
+      end
+
       subs = extractSubStreams(file)
 
       tasks << Proc.new{ VP9.transcodeWithSubs(file[:path], outPath, subs) }
