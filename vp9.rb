@@ -22,8 +22,12 @@ module VP9
    end
 
    # Extract the subs as well as standard encoding.
-   def VP9.transcodeWithSubs(inPath, outPath, subStreamIds)
-      args = []
+   def VP9.transcodeWithSubs(inPath, outPath, videoStreamId, audioStreamId, subStreamIds)
+      args = [
+         '-map', "0:#{videoStreamId}",
+         '-map', "0:#{audioStreamId}"
+      ]
+
       subStreamIds.each{|id|
          args += ['-map', "0:#{id}", '-c:s', 'webvtt']
       }
