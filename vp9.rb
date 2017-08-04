@@ -4,7 +4,7 @@ module VP9
    DEFAULT_ARGS = [
       '-c:v', 'libvpx-vp9',
       '-crf', '32', '-b:v', '0',
-      '-c:a', 'libvorbis', '-b:a', '64k',
+      '-c:a', 'libvorbis', '-b:a', '128k',
       '-cpu-used', '1',
       '-deadline', '-good',
       '-tile-columns', '6', '-frame-parallel', '1',
