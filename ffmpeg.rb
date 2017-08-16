@@ -35,7 +35,7 @@ module FFMPEG
    CONVERTABLE_SUBTITLE_CODECS = ['ass', 'mov_text', 'srt', 'ssa', 'subrip']
 
    # Subs we cannot convert to webvtt.
-   UNCONVERTABLE_SUBTITLE_CODECS = ['dvd_subtitle']
+   UNCONVERTABLE_SUBTITLE_CODECS = ['dvd_subtitle', 'hdmv_pgs_subtitle']
 
    KNOWN_SUBTITLE_CODECS = CONVERTABLE_SUBTITLE_CODECS + UNCONVERTABLE_SUBTITLE_CODECS
 
