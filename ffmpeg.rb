@@ -15,7 +15,7 @@ module FFMPEG
       'gif', 'gifv',
       'm2v', 'm4p', 'm4v', 'mkv', 'mng', 'mov', 'mp2', 'mp4', 'mpe', 'mpeg', 'mpg', 'mpv', 'mxf',
       'nsv',
-      'ogg', 'ogv',
+      'ogg', 'ogm', 'ogv', # .ogm is also used as a audio format, but people often misuse it for ogv.
       'qt',
       'rm', 'rmvb', 'roq',
       'svi',
