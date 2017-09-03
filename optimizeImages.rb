@@ -6,7 +6,7 @@ require 'tmpdir'
 
 RAND_NAME_LENGTH = 32
 
-SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'png']
+SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'png', 'gif']
 SUPPORTED_ARCHIVE_EXTENSIONS = ['rar', 'tar', 'zip']
 
 # These files will be removed if they are seen.
@@ -126,6 +126,8 @@ def optimizeImage(inPath, outPath)
       optimizeJPG(inPath, outPath)
    elsif (ext == 'png')
       optimizePNG(inPath, outPath)
+   elsif (ext == 'gif')
+      FileUtils.cp(inPath, outPath)
    else
       raise("Can't handle this image type: [#{inPath}]")
    end
