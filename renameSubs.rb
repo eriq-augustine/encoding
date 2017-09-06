@@ -139,7 +139,7 @@ def parseDir(path, dry)
    # just throw up our hands and make the user deal with it.
    if (offendingFiles.size() > 0)
       puts "Found some sub files with unknown additional information:"
-      offendingFiles.each{|offendingFile, addtionalInfo|
+      offendingFiles.each{|offendingFile, additionalInfo|
          puts "   '#{File.join(path, offendingFile)}' => '#{additionalInfo}'"
       }
 
