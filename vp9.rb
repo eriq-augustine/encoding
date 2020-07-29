@@ -3,7 +3,7 @@ require_relative './ffmpeg'
 module VP9
    DEFAULT_ARGS = [
       '-c:v', 'libvpx-vp9',
-      '-crf', '32', '-b:v', '0',
+      '-crf', '31', '-b:v', '0',
       '-c:a', 'libvorbis', '-b:a', '128k',
       '-cpu-used', '1',
       '-deadline', '-good',
@@ -44,13 +44,15 @@ module VP9
       if (args.size != 2 || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
          puts "USAGE: ruby #{$0} <in path> <out path>"
          puts "Encode a file using our default VP9 options."
+         puts "Will also utilize all but one of the availble processors."
          exit(1)
       end
 
       inPath = args.shift()
       outPath = args.shift()
+      additionalArgs = ['-threads', [1, Etc.nprocessors - 1].max()]
 
-      return inPath, outPath
+      return inPath, outPath, additionalArgs
    end
 end
 
