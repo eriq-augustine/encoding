@@ -8,7 +8,7 @@ require_relative './ffmpeg'
 module VP9
    DEFAULT_ARGS = [
       # Video args are handled in VP9.getVideoArgs().
-      '-c:a', 'libvorbis', '-b:a', '256k',
+      '-c:a', 'libvorbis', '-minrate', '128k',
       '-g', '240',  # Keyframe spacing.
       '-cpu-used', '1',
       '-deadline', '-good',
