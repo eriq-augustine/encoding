@@ -18,7 +18,7 @@ module VP9
       '-f', 'webm'
    ]
 
-   DEFAULT_CRF = 31
+   DEFAULT_CRF = 30
 
    DEFAULT_SUB_ARGS = [
       '-c:s', 'webvtt'
