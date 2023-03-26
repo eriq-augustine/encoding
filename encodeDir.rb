@@ -122,10 +122,6 @@ def getStreams(files)
          violations['multiple video streams'] << file
       end
 
-      if (file[:streams][:audio].size() > 1)
-         violations['multiple audio streams'] << file
-      end
-
       file[:streams][:subtitle].each{|subStream|
          if (!FFMPEG::KNOWN_SUBTITLE_CODECS.include?(subStream['codec_name']))
             violations['unknown sub type'] << file
