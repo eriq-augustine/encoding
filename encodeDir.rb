@@ -194,11 +194,12 @@ def encodeFiles(outputDir, files)
 
       subs = extractSubStreams(file)
 
-      # Remember that multiple video or audio streams has been disallowed.
+      # Remember that multiple video streams has been disallowed.
       videoStreamId = file[:streams][:video][0]['index'].to_i()
-      audioStreamId = file[:streams][:audio][0]['index'].to_i()
 
-      tasks << Proc.new{ VP9.transcodeWithSubs(file[:path], outPath, videoStreamId, audioStreamId, subs) }
+      audioStreamIds = file[:streams][:audio].map{|stream| stream['index'].to_i() }
+
+      tasks << Proc.new{ VP9.transcodeWithSubs(file[:path], outPath, videoStreamId, audioStreamIds, subs) }
       labels << file[:path]
    }
 
