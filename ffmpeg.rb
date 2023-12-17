@@ -19,6 +19,7 @@ module FFMPEG
       'qt',
       'rm', 'rmvb', 'roq',
       'svi',
+      'ts',
       'vob',
       'webm', 'wmv',
       'yuv'
