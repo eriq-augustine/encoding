@@ -4,6 +4,8 @@ require 'fileutils'
 require 'shellwords'
 require 'tmpdir'
 
+DEBUG = true
+
 RAND_NAME_LENGTH = 32
 
 SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'png', 'gif']
@@ -167,7 +169,7 @@ def handleSingleImages(files)
       labels << fileInfo[:path]
    }
 
-   Util.parallel(tasks, labels, false)
+   Util.parallel(tasks, labels, DEBUG)
 end
 
 def handleArchive(fileInfo)
@@ -274,6 +276,14 @@ def parseDir(path, outputPath)
 end
 
 def main(targetDir, outputDir)
+   if (!File.file?(MOZCJPEG_PATH))
+      raise("Cannot find mozjpg: [#{MOZCJPEG_PATH}].")
+   end
+
+   if (!File.file?(PNGQUANT_PATH))
+      raise("Cannot find pngquant: [#{PNGQUANT_PATH}].")
+   end
+
    parseDir(targetDir, outputDir)
 end
 
