@@ -137,7 +137,7 @@ end
 
 # Just copy other files.
 def handleOtherFile(fileInfo)
-   if (File.exists?(fileInfo[:outputPath]))
+   if (File.exist?(fileInfo[:outputPath]))
       puts "SKIPPING: Copy target already exists: #{fileInfo[:outputPath]}"
       return
    end
@@ -151,7 +151,7 @@ def handleOtherFile(fileInfo)
 end
 
 def handleSingleImage(fileInfo)
-   if (File.exists?(fileInfo[:outputPath]))
+   if (File.exist?(fileInfo[:outputPath]))
       puts "SKIPPING: Single optimize target already exists: #{fileInfo[:outputPath]}"
       return
    end
@@ -175,7 +175,7 @@ end
 def handleArchive(fileInfo)
    finalPath = fileInfo[:outputPath].sub(/#{fileInfo[:ext]}$/, 'tar')
 
-   if (File.exists?(finalPath))
+   if (File.exist?(finalPath))
       puts "SKIPPING: Archive target already exists: #{finalPath}"
       return
    end
